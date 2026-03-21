@@ -11,8 +11,8 @@ import javafx.scene.text.*;
 
 public class InventoryScreen {
 
-    private final TableView<DataStore.InventoryItem>       table    = new TableView<>();
-    private final ObservableList<DataStore.InventoryItem>  data     = FXCollections.observableArrayList();
+    private final TableView<DataStore.InventoryItem>      table = new TableView<>();
+    private final ObservableList<DataStore.InventoryItem> data  = FXCollections.observableArrayList();
     private final TextField nameField      = new TextField();
     private final TextField quantityField  = new TextField();
     private final TextField unitField      = new TextField();
@@ -44,22 +44,28 @@ public class InventoryScreen {
         threshCol.setCellValueFactory(new PropertyValueFactory<>("lowStockThreshold"));
         threshCol.setPrefWidth(110);
 
-        TableColumn<DataStore.InventoryItem, String> statusCol = new TableColumn<>("Status");
+        // FIX for vanishing row: use a cell factory on the Status column only.
+        // DO NOT use a rowFactory with background color — it conflicts with
+        // JavaFX's selection highlight and makes the selected row invisible.
+        // Instead we color only the Status cell text, and use a CSS stylesheet
+        // trick to tint the entire row via the status cell's parent row lookup.
+        TableColumn<DataStore.InventoryItem, Boolean> statusCol = new TableColumn<>("Status");
         statusCol.setPrefWidth(120);
+        statusCol.setCellValueFactory(cellData ->
+                new javafx.beans.property.SimpleBooleanProperty(cellData.getValue().isLowStock())
+        );
         statusCol.setCellFactory(col -> new TableCell<>() {
-            protected void updateItem(String v, boolean empty) {
-                super.updateItem(v, empty);
-                if (empty || getTableRow() == null || getTableRow().getItem() == null) {
-                    setText(null); setStyle("");
+            protected void updateItem(Boolean isLow, boolean empty) {
+                super.updateItem(isLow, empty);
+                if (empty || isLow == null) {
+                    setText(null);
+                    setStyle("");
+                } else if (isLow) {
+                    setText("⚠ LOW STOCK");
+                    setStyle("-fx-text-fill:#c0392b; -fx-font-weight:bold;");
                 } else {
-                    DataStore.InventoryItem item = (DataStore.InventoryItem) getTableRow().getItem();
-                    if (item.isLowStock()) {
-                        setText("⚠ LOW STOCK");
-                        setStyle("-fx-text-fill:#c0392b; -fx-font-weight:bold;");
-                    } else {
-                        setText("✓ OK");
-                        setStyle("-fx-text-fill:#1a7a4a; -fx-font-weight:bold;");
-                    }
+                    setText("✓ OK");
+                    setStyle("-fx-text-fill:#1a7a4a; -fx-font-weight:bold;");
                 }
             }
         });
@@ -71,11 +77,30 @@ public class InventoryScreen {
         table.setStyle("-fx-font-size:13px;");
         VBox.setVgrow(table, Priority.ALWAYS);
 
-        // Low stock row highlight
-        table.setRowFactory(tv -> new TableRow<>() {
+        // FIX: Row background via CSS on the row — but use pseudoClass trick so
+        // selected rows still show the blue highlight on top.
+        // We apply a subtle pink tint only when NOT selected.
+        table.setRowFactory(tv -> new TableRow<DataStore.InventoryItem>() {
+            @Override
             protected void updateItem(DataStore.InventoryItem item, boolean empty) {
                 super.updateItem(item, empty);
-                setStyle(item != null && item.isLowStock() ? "-fx-background-color:#fff5f5;" : "");
+                if (!empty && item != null && item.isLowStock() && !isSelected()) {
+                    setStyle("-fx-background-color:#fff0f0;");
+                } else {
+                    setStyle("");
+                }
+            }
+
+            @Override
+            public void updateSelected(boolean selected) {
+                super.updateSelected(selected);
+                // Re-run updateItem logic when selection changes
+                DataStore.InventoryItem item = getItem();
+                if (item != null && item.isLowStock() && !selected) {
+                    setStyle("-fx-background-color:#fff0f0;");
+                } else {
+                    setStyle("");
+                }
             }
         });
 
@@ -95,21 +120,25 @@ public class InventoryScreen {
         form.add(boldLabel("Unit:"),         0, 2); form.add(unitField,      1, 2);
         form.add(boldLabel("Low Stock At:"), 0, 3); form.add(thresholdField, 1, 3);
 
-        ColumnConstraints c1 = new ColumnConstraints(110);
+        ColumnConstraints c1 = new ColumnConstraints(120);
         ColumnConstraints c2 = new ColumnConstraints();
         c2.setHgrow(Priority.ALWAYS);
         form.getColumnConstraints().addAll(c1, c2);
 
-        Button addBtn    = HelloApplication.styledButton("+ Add",    HelloApplication.GREEN, HelloApplication.WHITE);
-        Button updateBtn = HelloApplication.styledButton("✎ Update", HelloApplication.BLUE,  HelloApplication.WHITE);
-        Button deleteBtn = HelloApplication.styledButton("✕ Delete", HelloApplication.RED,   HelloApplication.WHITE);
-        Button clearBtn  = HelloApplication.styledButton("Clear",    "#888",                 HelloApplication.WHITE);
+        // FIX: explicit actionButton() with visible text
+        Button addBtn    = actionButton("+ Add Item", "#1a7a4a");
+        Button updateBtn = actionButton("Update",     "#1a3a6b");
+        Button deleteBtn = actionButton("Delete",     "#c0392b");
+        Button clearBtn  = actionButton("Clear",      "#888888");
 
         statusLabel.setFont(Font.font("Arial", 13));
 
-        HBox btnRow = new HBox(10, addBtn, updateBtn, deleteBtn, clearBtn, statusLabel);
+        HBox btnRow = new HBox(10, addBtn, updateBtn, deleteBtn, clearBtn);
         btnRow.setAlignment(Pos.CENTER_LEFT);
-        btnRow.setPadding(new Insets(10, 16, 16, 16));
+        btnRow.setPadding(new Insets(12, 16, 4, 16));
+
+        HBox statusRow = new HBox(statusLabel);
+        statusRow.setPadding(new Insets(0, 16, 16, 16));
 
         // ── SELECTION ─────────────────────────────────────────────
         table.getSelectionModel().selectedItemProperty().addListener((obs, old, sel) -> {
@@ -134,12 +163,12 @@ public class InventoryScreen {
             DataStore.inventory.add(item);
             data.setAll(DataStore.inventory);
             clearForm();
-            status("Item added.", HelloApplication.GREEN);
+            status("Item added.", "#1a7a4a");
         });
 
         updateBtn.setOnAction(e -> {
             DataStore.InventoryItem sel = table.getSelectionModel().getSelectedItem();
-            if (sel == null) { status("Select an item to update.", HelloApplication.RED); return; }
+            if (sel == null) { status("Select an item to update.", "#c0392b"); return; }
             if (!validate()) return;
             sel.setName(nameField.getText().trim());
             sel.setQuantity(Integer.parseInt(quantityField.getText().trim()));
@@ -148,47 +177,65 @@ public class InventoryScreen {
             data.setAll(DataStore.inventory);
             table.refresh();
             clearForm();
-            status("Updated.", HelloApplication.GREEN);
+            status("Updated successfully.", "#1a7a4a");
         });
 
         deleteBtn.setOnAction(e -> {
             DataStore.InventoryItem sel = table.getSelectionModel().getSelectedItem();
-            if (sel == null) { status("Select an item to delete.", HelloApplication.RED); return; }
+            if (sel == null) { status("Select an item to delete.", "#c0392b"); return; }
             DataStore.inventory.remove(sel);
             data.setAll(DataStore.inventory);
             clearForm();
-            status("Deleted.", HelloApplication.RED);
+            status("Deleted.", "#c0392b");
         });
 
         clearBtn.setOnAction(e -> clearForm());
 
         // ── LAYOUT ────────────────────────────────────────────────
-        Label title = boldLabel("Stock Levels");
-        title.setFont(Font.font("Arial", FontWeight.BOLD, 16));
-        title.setTextFill(Color.web(HelloApplication.BLUE));
+        Label tableTitle = new Label("Stock Levels");
+        tableTitle.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+        tableTitle.setTextFill(Color.web(HelloApplication.BLUE));
 
-        Label legend = new Label("⚠ Red rows = low stock items");
+        Label legend = new Label("⚠  Red rows = low stock items");
         legend.setFont(Font.font("Arial", 12));
         legend.setTextFill(Color.web("#c0392b"));
 
-        Label formTitle = boldLabel("Add / Update Stock");
+        Label formTitle = new Label("Add / Update Stock");
         formTitle.setFont(Font.font("Arial", FontWeight.BOLD, 16));
         formTitle.setTextFill(Color.web(HelloApplication.BLUE));
 
-        VBox leftPane = new VBox(6, title, legend, table);
+        VBox leftPane = new VBox(6, tableTitle, legend, table);
         leftPane.setPadding(new Insets(16));
         VBox.setVgrow(leftPane, Priority.ALWAYS);
 
-        VBox rightPane = new VBox(10, formTitle, form, btnRow);
+        VBox rightPane = new VBox(10, formTitle, form, btnRow, statusRow);
         rightPane.setPadding(new Insets(16));
-        rightPane.setPrefWidth(320);
+        rightPane.setPrefWidth(340);
 
-        HBox content = new HBox(0, leftPane, new Separator(javafx.geometry.Orientation.VERTICAL), rightPane);
+        HBox content = new HBox(0, leftPane,
+                new Separator(javafx.geometry.Orientation.VERTICAL), rightPane);
         HBox.setHgrow(leftPane, Priority.ALWAYS);
         VBox.setVgrow(content, Priority.ALWAYS);
 
         root.getChildren().addAll(topBar, content);
         return new Scene(root, 950, 680);
+    }
+
+    private Button actionButton(String label, String bgColor) {
+        Button btn = new Button(label);
+        btn.setFont(Font.font("Arial", FontWeight.BOLD, 13));
+        btn.setMinWidth(Region.USE_PREF_SIZE);
+        btn.setPrefHeight(34);
+        btn.setStyle(
+                "-fx-background-color:" + bgColor + ";" +
+                        "-fx-text-fill:white;" +
+                        "-fx-padding:6 14;" +
+                        "-fx-background-radius:6;" +
+                        "-fx-cursor:hand;"
+        );
+        btn.setOnMouseEntered(e -> btn.setOpacity(0.85));
+        btn.setOnMouseExited(e  -> btn.setOpacity(1.0));
+        return btn;
     }
 
     private Label boldLabel(String t) {
@@ -205,13 +252,13 @@ public class InventoryScreen {
 
     private boolean validate() {
         if (nameField.getText().trim().isEmpty() || unitField.getText().trim().isEmpty()) {
-            status("Name and Unit are required.", HelloApplication.RED); return false;
+            status("Name and Unit are required.", "#c0392b"); return false;
         }
         try {
             Integer.parseInt(quantityField.getText().trim());
             Integer.parseInt(thresholdField.getText().trim());
         } catch (Exception ex) {
-            status("Quantity and threshold must be whole numbers.", HelloApplication.RED); return false;
+            status("Quantity and threshold must be whole numbers.", "#c0392b"); return false;
         }
         return true;
     }

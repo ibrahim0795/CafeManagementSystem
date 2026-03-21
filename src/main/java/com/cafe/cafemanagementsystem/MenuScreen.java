@@ -11,8 +11,8 @@ import javafx.scene.text.*;
 
 public class MenuScreen {
 
-    private final TableView<DataStore.MenuItem>         table     = new TableView<>();
-    private final ObservableList<DataStore.MenuItem>    data      = FXCollections.observableArrayList();
+    private final TableView<DataStore.MenuItem>      table     = new TableView<>();
+    private final ObservableList<DataStore.MenuItem> data      = FXCollections.observableArrayList();
     private final TextField nameField     = new TextField();
     private final TextField categoryField = new TextField();
     private final TextField priceField    = new TextField();
@@ -75,18 +75,23 @@ public class MenuScreen {
         c2.setHgrow(Priority.ALWAYS);
         form.getColumnConstraints().addAll(c1, c2);
 
-        Button addBtn    = HelloApplication.styledButton("+ Add",    HelloApplication.GREEN, HelloApplication.WHITE);
-        Button updateBtn = HelloApplication.styledButton("✎ Update", HelloApplication.BLUE,  HelloApplication.WHITE);
-        Button deleteBtn = HelloApplication.styledButton("✕ Delete", HelloApplication.RED,   HelloApplication.WHITE);
-        Button clearBtn  = HelloApplication.styledButton("Clear",    "#888",                 HelloApplication.WHITE);
+        // FIX: Use actionButton() instead of styledButton() so text is never clipped
+        Button addBtn    = actionButton("+ Add Item", "#1a7a4a");
+        Button updateBtn = actionButton("Update",     "#1a3a6b");
+        Button deleteBtn = actionButton("Delete",     "#c0392b");
+        Button clearBtn  = actionButton("Clear",      "#888888");
 
         statusLabel.setFont(Font.font("Arial", 13));
+        statusLabel.setPadding(new Insets(0, 0, 0, 8));
 
-        HBox btnRow = new HBox(10, addBtn, updateBtn, deleteBtn, clearBtn, statusLabel);
+        HBox btnRow = new HBox(10, addBtn, updateBtn, deleteBtn, clearBtn);
         btnRow.setAlignment(Pos.CENTER_LEFT);
-        btnRow.setPadding(new Insets(10, 16, 16, 16));
+        btnRow.setPadding(new Insets(12, 16, 4, 16));
 
-        // ── SELECTION LISTENER ────────────────────────────────────
+        HBox statusRow = new HBox(statusLabel);
+        statusRow.setPadding(new Insets(0, 16, 16, 16));
+
+        // ── SELECTION ─────────────────────────────────────────────
         table.getSelectionModel().selectedItemProperty().addListener((obs, old, sel) -> {
             if (sel != null) {
                 nameField.setText(sel.getName());
@@ -107,24 +112,24 @@ public class MenuScreen {
             DataStore.menuItems.add(item);
             data.setAll(DataStore.menuItems);
             clearForm();
-            status("Item added successfully.", HelloApplication.GREEN);
+            status("Item added successfully.", "#1a7a4a");
         });
 
         updateBtn.setOnAction(e -> {
             DataStore.MenuItem sel = table.getSelectionModel().getSelectedItem();
-            if (sel == null) { status("Select an item to update.", HelloApplication.RED); return; }
+            if (sel == null) { status("Select an item to update.", "#c0392b"); return; }
             if (!validate()) return;
             sel.setName(nameField.getText().trim());
             sel.setCategory(categoryField.getText().trim());
             sel.setPrice(Double.parseDouble(priceField.getText().trim()));
             data.setAll(DataStore.menuItems);
             clearForm();
-            status("Item updated.", HelloApplication.GREEN);
+            status("Item updated.", "#1a7a4a");
         });
 
         deleteBtn.setOnAction(e -> {
             DataStore.MenuItem sel = table.getSelectionModel().getSelectedItem();
-            if (sel == null) { status("Select an item to delete.", HelloApplication.RED); return; }
+            if (sel == null) { status("Select an item to delete.", "#c0392b"); return; }
             Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
                     "Delete '" + sel.getName() + "'?", ButtonType.YES, ButtonType.NO);
             confirm.showAndWait().ifPresent(btn -> {
@@ -132,7 +137,7 @@ public class MenuScreen {
                     DataStore.menuItems.remove(sel);
                     data.setAll(DataStore.menuItems);
                     clearForm();
-                    status("Item deleted.", HelloApplication.RED);
+                    status("Item deleted.", "#c0392b");
                 }
             });
         });
@@ -140,28 +145,48 @@ public class MenuScreen {
         clearBtn.setOnAction(e -> clearForm());
 
         // ── LAYOUT ────────────────────────────────────────────────
-        Label title = boldLabel("Menu Items");
-        title.setFont(Font.font("Arial", FontWeight.BOLD, 16));
-        title.setTextFill(Color.web(HelloApplication.BLUE));
+        Label tableTitle = new Label("Menu Items");
+        tableTitle.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+        tableTitle.setTextFill(Color.web(HelloApplication.BLUE));
 
-        Label formTitle = boldLabel("Add / Edit Item");
+        Label formTitle = new Label("Add / Edit Item");
         formTitle.setFont(Font.font("Arial", FontWeight.BOLD, 16));
         formTitle.setTextFill(Color.web(HelloApplication.BLUE));
 
-        VBox leftPane = new VBox(8, title, table);
+        VBox leftPane = new VBox(8, tableTitle, table);
         leftPane.setPadding(new Insets(16));
         VBox.setVgrow(leftPane, Priority.ALWAYS);
 
-        VBox rightPane = new VBox(10, formTitle, form, btnRow);
+        VBox rightPane = new VBox(10, formTitle, form, btnRow, statusRow);
         rightPane.setPadding(new Insets(16));
-        rightPane.setPrefWidth(320);
+        rightPane.setPrefWidth(340);
 
-        HBox content = new HBox(0, leftPane, new Separator(javafx.geometry.Orientation.VERTICAL), rightPane);
+        HBox content = new HBox(0, leftPane,
+                new Separator(javafx.geometry.Orientation.VERTICAL), rightPane);
         HBox.setHgrow(leftPane, Priority.ALWAYS);
         VBox.setVgrow(content, Priority.ALWAYS);
 
         root.getChildren().addAll(topBar, content);
         return new Scene(root, 950, 680);
+    }
+
+    // FIX: Build buttons manually so JavaFX never clips the label text
+    private Button actionButton(String label, String bgColor) {
+        Button btn = new Button(label);
+        btn.setFont(Font.font("Arial", FontWeight.BOLD, 13));
+        btn.setMinWidth(Region.USE_PREF_SIZE);   // never shrink below pref
+        btn.setMaxWidth(Double.MAX_VALUE);
+        btn.setPrefHeight(34);
+        btn.setStyle(
+                "-fx-background-color:" + bgColor + ";" +
+                        "-fx-text-fill:white;" +
+                        "-fx-padding:6 14;" +
+                        "-fx-background-radius:6;" +
+                        "-fx-cursor:hand;"
+        );
+        btn.setOnMouseEntered(e -> btn.setOpacity(0.85));
+        btn.setOnMouseExited(e  -> btn.setOpacity(1.0));
+        return btn;
     }
 
     private Label boldLabel(String t) {
@@ -178,10 +203,12 @@ public class MenuScreen {
 
     private boolean validate() {
         if (nameField.getText().trim().isEmpty() || categoryField.getText().trim().isEmpty()) {
-            status("Name and Category are required.", HelloApplication.RED); return false;
+            status("Name and Category are required.", "#c0392b"); return false;
         }
         try { Double.parseDouble(priceField.getText().trim()); }
-        catch (NumberFormatException ex) { status("Enter a valid price (e.g. 2.50).", HelloApplication.RED); return false; }
+        catch (NumberFormatException ex) {
+            status("Enter a valid price (e.g. 2.50).", "#c0392b"); return false;
+        }
         return true;
     }
 
