@@ -23,31 +23,29 @@ public class HelloApplication extends Application {
 
     @Override
     public void start(Stage stage) {
-        DataStore.init();           // ← guarantees data is loaded first
+        DataStore.init();
         primaryStage = stage;
         stage.setTitle("Cafe Management System — ByteBrew");
         stage.setMinWidth(900);
         stage.setMinHeight(650);
+        stage.setOnCloseRequest(e -> DataStore.shutdown());
         showLogin();
         stage.show();
     }
 
-    public static void showLogin()        { primaryStage.setScene(new LoginScreen().getScene()); }
-    public static void showDashboard()    { primaryStage.setScene(new DashboardScreen().getScene()); }
-    public static void showMenu()         { primaryStage.setScene(new MenuScreen().getScene()); }
-    public static void showInventory()    { primaryStage.setScene(new InventoryScreen().getScene()); }
-    public static void showNewOrder()     { primaryStage.setScene(new NewOrderScreen().getScene()); }
-    public static void showOrderHistory() { primaryStage.setScene(new OrderHistoryScreen().getScene()); }
+    public static void showLogin()         { primaryStage.setScene(new LoginScreen().getScene()); }
+    public static void showDashboard()     { primaryStage.setScene(new DashboardScreen().getScene()); }
+    public static void showMenu()          { primaryStage.setScene(new MenuScreen().getScene()); }
+    public static void showInventory()     { primaryStage.setScene(new InventoryScreen().getScene()); }
+    public static void showNewOrder()      { primaryStage.setScene(new NewOrderScreen().getScene()); }
+    public static void showOrderHistory()  { primaryStage.setScene(new OrderHistoryScreen().getScene()); }
+    public static void showSalesReport()   { primaryStage.setScene(new SalesReportScreen().getScene()); }
+    public static void showUserManagement(){ primaryStage.setScene(new UserManagementScreen().getScene()); }
 
-    // ─── SHARED HELPERS ───────────────────────────────────────────
     public static Button styledButton(String text, String bgColor, String textColor) {
         Button btn = new Button(text);
-        btn.setStyle(
-                "-fx-background-color:" + bgColor + ";" +
-                        "-fx-text-fill:" + textColor + ";" +
-                        "-fx-font-size:13px; -fx-font-weight:bold;" +
-                        "-fx-padding:8 18; -fx-background-radius:6; -fx-cursor:hand;"
-        );
+        btn.setStyle("-fx-background-color:" + bgColor + ";-fx-text-fill:" + textColor +
+                ";-fx-font-size:13px;-fx-font-weight:bold;-fx-padding:8 18;-fx-background-radius:6;-fx-cursor:hand;");
         btn.setOnMouseEntered(e -> btn.setOpacity(0.85));
         btn.setOnMouseExited(e  -> btn.setOpacity(1.0));
         return btn;
@@ -59,15 +57,13 @@ public class HelloApplication extends Application {
         titleLabel.setTextFill(Color.WHITE);
 
         String who = DataStore.currentUser != null
-                ? DataStore.currentUser.username + " (" + DataStore.currentUser.role + ")"
-                : "";
+                ? DataStore.currentUser.username + " (" + DataStore.currentUser.role + ")" : "";
         Label userLabel = new Label("Logged in as: " + who);
         userLabel.setTextFill(Color.web("#aad4f5"));
         userLabel.setFont(Font.font("Arial", 13));
 
         Button homeBtn   = styledButton("Dashboard", "#2e5fa3", WHITE);
-        Button logoutBtn = styledButton("Logout",    RED, WHITE);
-
+        Button logoutBtn = styledButton("Logout", RED, WHITE);
         homeBtn.setOnAction(e -> showDashboard());
         logoutBtn.setOnAction(e -> { DataStore.currentUser = null; showLogin(); });
 
@@ -81,16 +77,9 @@ public class HelloApplication extends Application {
         return bar;
     }
 
-    public static void showAlert(String title, String msg) {
-        Alert a = new Alert(Alert.AlertType.INFORMATION);
-        a.setTitle(title); a.setHeaderText(null); a.setContentText(msg);
-        a.showAndWait();
-    }
-
     public static void showError(String msg) {
         Alert a = new Alert(Alert.AlertType.ERROR);
-        a.setTitle("Error"); a.setHeaderText(null); a.setContentText(msg);
-        a.showAndWait();
+        a.setTitle("Error"); a.setHeaderText(null); a.setContentText(msg); a.showAndWait();
     }
 
     public static void main(String[] args) { launch(args); }

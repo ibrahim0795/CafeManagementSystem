@@ -30,7 +30,6 @@ public class DashboardScreen {
         Label sub = new Label("Role: " + DataStore.currentUser.role + "   |   Select a module to get started.");
         sub.setFont(Font.font("Arial", FontWeight.NORMAL, 14));
         sub.setTextFill(Color.web("#666666"));
-
         welcomeBox.getChildren().addAll(welcome, sub);
 
         // ── STAT CARDS ────────────────────────────────────────────
@@ -47,56 +46,33 @@ public class DashboardScreen {
                 statCard("Revenue Today",    String.format("$%.2f", revenue),           "#7d3c98")
         );
 
-        // ── MODULE SECTION ────────────────────────────────────────
+        // ── MODULE CARDS ──────────────────────────────────────────
         Label modulesLabel = new Label("Modules");
         modulesLabel.setFont(Font.font("Arial", FontWeight.BOLD, 16));
         modulesLabel.setTextFill(Color.web("#1a3a6b"));
         modulesLabel.setPadding(new Insets(8, 24, 4, 24));
 
         GridPane grid = new GridPane();
-        grid.setHgap(16);
-        grid.setVgap(16);
+        grid.setHgap(16); grid.setVgap(16);
         grid.setPadding(new Insets(8, 24, 24, 24));
         grid.setStyle("-fx-background-color:#f4f6f9;");
 
-        grid.add(moduleCard(
-                "Create New Order",
-                "Select items and place a customer order",
-                "#1a3a6b",
-                e -> HelloApplication.showNewOrder()), 0, 0);
-
+        // Row 0
+        grid.add(moduleCard("Create New Order",     "Select items and place a customer order",          "#1a3a6b", e -> HelloApplication.showNewOrder()), 0, 0);
         if (isManager) {
-            grid.add(moduleCard(
-                    "Menu Management",
-                    "Add, edit, or remove menu items",
-                    "#2e5fa3",
-                    e -> HelloApplication.showMenu()), 1, 0);
-
-            grid.add(moduleCard(
-                    "Inventory Management",
-                    "Track and update ingredient stock levels",
-                    "#1a7a4a",
-                    e -> HelloApplication.showInventory()), 0, 1);
-
-            grid.add(moduleCard(
-                    "Order History",
-                    "View and filter all past orders",
-                    "#7d3c98",
-                    e -> HelloApplication.showOrderHistory()), 1, 1);
+            grid.add(moduleCard("Menu Management",  "Add, edit, remove and search menu items",          "#2e5fa3", e -> HelloApplication.showMenu()), 1, 0);
+            // Row 1
+            grid.add(moduleCard("Inventory Management","Track and update ingredient stock levels",       "#1a7a4a", e -> HelloApplication.showInventory()), 0, 1);
+            grid.add(moduleCard("Order History",    "View and filter all past orders",                  "#7d3c98", e -> HelloApplication.showOrderHistory()), 1, 1);
+            // Row 2 — Sprint 3
+            grid.add(moduleCard("Sales Report",     "Revenue summary, top items, order stats",          "#c0392b", e -> HelloApplication.showSalesReport()), 0, 2);
+            grid.add(moduleCard("User Management",  "Add and remove system user accounts",              "#e67e22", e -> HelloApplication.showUserManagement()), 1, 2);
         } else {
-            VBox noteBox = new VBox(6);
-            noteBox.setPadding(new Insets(16));
-
-            Label noteLine1 = new Label("Menu Management, Inventory, and");
-            noteLine1.setFont(Font.font("Arial", FontWeight.NORMAL, 13));
-            noteLine1.setTextFill(Color.web("#888888"));
-
-            Label noteLine2 = new Label("Order History are for Managers only.");
-            noteLine2.setFont(Font.font("Arial", FontWeight.NORMAL, 13));
-            noteLine2.setTextFill(Color.web("#888888"));
-
-            noteBox.getChildren().addAll(noteLine1, noteLine2);
-            grid.add(noteBox, 1, 0);
+            Label note = new Label("Menu Management, Inventory, Order History,\nSales Report, and User Management\nare available to Managers only.");
+            note.setFont(Font.font("Arial", FontWeight.NORMAL, 13));
+            note.setTextFill(Color.web("#888888"));
+            note.setPadding(new Insets(12, 0, 0, 4));
+            grid.add(note, 1, 0);
         }
 
         ScrollPane scroll = new ScrollPane(grid);
@@ -105,25 +81,23 @@ public class DashboardScreen {
         VBox.setVgrow(scroll, Priority.ALWAYS);
 
         root.getChildren().addAll(topBar, welcomeBox, statsRow, modulesLabel, scroll);
-        return new Scene(root, 950, 680);
+        return new Scene(root, 950, 720);
     }
 
-    // ── STAT CARD ─────────────────────────────────────────────────
-    private VBox statCard(String label, String value, String accentColor) {
+    private VBox statCard(String label, String value, String color) {
         VBox card = new VBox(6);
         card.setAlignment(Pos.CENTER_LEFT);
         card.setPadding(new Insets(16, 20, 16, 20));
         card.setStyle(
                 "-fx-background-color:#ffffff;" +
                         "-fx-background-radius:10;" +
-                        "-fx-border-color:" + accentColor + ";" +
+                        "-fx-border-color:" + color + ";" +
                         "-fx-border-width:0 0 0 5;" +
                         "-fx-border-radius:0 10 10 0;"
         );
-
         Label valLbl = new Label(value);
         valLbl.setFont(Font.font("Arial", FontWeight.BOLD, 28));
-        valLbl.setTextFill(Color.web(accentColor));
+        valLbl.setTextFill(Color.web(color));
 
         Label lbl = new Label(label);
         lbl.setFont(Font.font("Arial", FontWeight.NORMAL, 12));
@@ -134,19 +108,15 @@ public class DashboardScreen {
         return card;
     }
 
-    // ── MODULE CARD ───────────────────────────────────────────────
-    private VBox moduleCard(String title, String desc, String accentColor,
+    private VBox moduleCard(String title, String desc, String color,
                             javafx.event.EventHandler<javafx.event.ActionEvent> action) {
-
-        // Title label — dark text on white background
         Label titleLabel = new Label(title);
         titleLabel.setFont(Font.font("Arial", FontWeight.BOLD, 14));
-        titleLabel.setTextFill(Color.web(accentColor));
+        titleLabel.setTextFill(Color.web(color));
         titleLabel.setWrapText(true);
         titleLabel.setMaxWidth(220);
         titleLabel.setStyle("-fx-background-color:transparent;");
 
-        // Description label
         Label descLabel = new Label(desc);
         descLabel.setFont(Font.font("Arial", FontWeight.NORMAL, 12));
         descLabel.setTextFill(Color.web("#555555"));
@@ -154,12 +124,11 @@ public class DashboardScreen {
         descLabel.setMaxWidth(220);
         descLabel.setStyle("-fx-background-color:transparent;");
 
-        // Open button
         Button openBtn = new Button("Open \u2192");
         openBtn.setFont(Font.font("Arial", FontWeight.BOLD, 13));
         openBtn.setTextFill(Color.WHITE);
         openBtn.setStyle(
-                "-fx-background-color:" + accentColor + ";" +
+                "-fx-background-color:" + color + ";" +
                         "-fx-text-fill:#ffffff;" +
                         "-fx-padding:7 18;" +
                         "-fx-background-radius:6;" +
@@ -173,8 +142,7 @@ public class DashboardScreen {
         card.setAlignment(Pos.TOP_LEFT);
         card.setPadding(new Insets(22, 22, 18, 22));
         card.setPrefWidth(260);
-        card.setPrefHeight(155);
-        // White background explicitly — no color inheritance
+        card.setPrefHeight(150);
         card.setStyle(
                 "-fx-background-color:#ffffff;" +
                         "-fx-background-radius:12;" +

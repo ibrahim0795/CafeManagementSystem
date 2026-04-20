@@ -8,6 +8,10 @@ import java.util.List;
 
 public class DataStore {
 
+    public static void shutdown() {
+        DatabaseManager.disconnect();
+    }
+
     // ─── USER ─────────────────────────────────────────────────────
     public static class User {
         public String username, password, role;
@@ -118,30 +122,16 @@ public class DataStore {
 
     // Call this from HelloApplication.start() to guarantee data loads
     public static void init() {
-        if (!users.isEmpty()) return;
+        DatabaseManager.connect();
+        DatabaseManager.createTables();
+        DatabaseManager.seedDefaultData();
 
-        users.add(new User("manager", "manager123", "Manager"));
-        users.add(new User("cashier", "cashier123", "Cashier"));
-
-        menuItems.add(new MenuItem(nextMenuId++, "Espresso",         "Coffee",  2.50));
-        menuItems.add(new MenuItem(nextMenuId++, "Cappuccino",       "Coffee",  3.50));
-        menuItems.add(new MenuItem(nextMenuId++, "Latte",            "Coffee",  3.75));
-        menuItems.add(new MenuItem(nextMenuId++, "Green Tea",        "Tea",     2.00));
-        menuItems.add(new MenuItem(nextMenuId++, "Chai Tea",         "Tea",     2.25));
-        menuItems.add(new MenuItem(nextMenuId++, "Croissant",        "Bakery",  2.80));
-        menuItems.add(new MenuItem(nextMenuId++, "Blueberry Muffin", "Bakery",  2.50));
-        menuItems.add(new MenuItem(nextMenuId++, "Club Sandwich",    "Food",    5.50));
-        menuItems.add(new MenuItem(nextMenuId++, "Caesar Salad",     "Food",    6.00));
-        menuItems.add(new MenuItem(nextMenuId++, "Orange Juice",     "Drinks",  2.75));
-
-        inventory.add(new InventoryItem(1, "Coffee Beans",    80, "kg",      10));
-        inventory.add(new InventoryItem(2, "Milk",            40, "liters",   8));
-        inventory.add(new InventoryItem(3, "Sugar",           25, "kg",       5));
-        inventory.add(new InventoryItem(4, "Tea Bags",         8, "boxes",   10));
-        inventory.add(new InventoryItem(5, "Flour",           15, "kg",       5));
-        inventory.add(new InventoryItem(6, "Butter",           4, "kg",       5));
-        inventory.add(new InventoryItem(7, "Orange Juice",    12, "liters",   5));
-        inventory.add(new InventoryItem(8, "Bread",            3, "loaves",   5));
+        users     = DatabaseManager.loadUsers();
+        menuItems = DatabaseManager.loadMenuItems();
+        inventory = DatabaseManager.loadInventory();
+        orders    = DatabaseManager.loadOrders();
+        nextMenuId  = DatabaseManager.getNextMenuId();
+        nextOrderId = DatabaseManager.getNextOrderId();
     }
 
     public static User login(String username, String password) {
